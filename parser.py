@@ -24,6 +24,7 @@ import paramiko
 from paramiko.ssh_exception import AuthenticationException
 
 
+# скачивает файл логов с указанного сервера по ssh
 def download_logfile(settings, srv):
     # лог ssh подключения
     # paramiko.util.log_to_file('paramiko_lib.log')
@@ -44,30 +45,28 @@ def download_logfile(settings, srv):
     remote_path = '/app/fusion/wire_gate/log/'
 
     # маска для поиска файлов вида support_log.20170927185959998.gz
-    pattern = re.compile(
-        r"support_log." + str(log_time) + "\d{7}.gz"
-    )
+    pattern = re.compile(r"support_log." + str(log_time) + "\d{7}.gz")
 
     try:
         files = sftp.listdir(path=remote_path)  # список файлов в папке
-        # print(files)
         for file in files:
-            # print(file)
             search = re.search(pattern, file)
             if search:
                 log_file = search[0]
                 # print(log_file)
                 local_path = str(srv) + '_' + log_file  # в виде 1_support_log.20170927185959998.gz
-                # print(local_path)
+
                 # скачать файл
                 sftp.get(remote_path + log_file, local_path)
                 sftp.close()
                 ssh.close()
+
                 # распаковать архив
                 with gzip.open(local_path, "rb") as f_in, open(local_path[:-3] + '.log', "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
-                # удалить файл архива
-                os.remove(local_path)
+
+                os.remove(local_path)  # удалить файл архива
+
         return local_path
 
     except IOError as e:
@@ -76,6 +75,7 @@ def download_logfile(settings, srv):
         print('[Error]', e)
 
 
+# парсит строку в список из значений полей сообщения
 def parser(message):
     pattern_timestamp = re.compile(r"(\d+-.*)")
     parse = dict(item.split(' ', 1) for item in message.split(', '))
@@ -90,6 +90,10 @@ def parser(message):
     result.insert(2, tw_login)
 
     return result
+
+
+def file_handling():
+    pass
 
 
 if __name__ == "__main__":
