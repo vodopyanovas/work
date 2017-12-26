@@ -111,31 +111,3 @@ if __name__ == "__main__":
         print('[Error] Authentication error! Check login/password')
     except Exception as e:
         print('[Error]', e)
-
-
-# TODO:
-# с помощью регулярок распарсить строку и записать куда-то
-# сделать логирование работы скрипта
-
-# обработать логи, матчить по ClOrdID - дописывать поле OrderID после получения
-
-# подключиться к серверу БД
-# записать строку в БД (таблица1/таблица2)
-# после записи данных по всему файлу построить view по двум таблицам с сортировкой по времени
-
-
-# СКРИПТ ДЛЯ БД
-# подключиться к серверу
-# создать БД, если не создана
-# создать таблицы, если не созданы
-
-# pattern = re.compile(
-#         r"(\d+-\d+-\d+.\d+:\d+:\d+.\d+.\d+.),.id.(\d*).(tw\w*), \w+ (New\w+|Order\w+[^Q][Request|Response|Reject]).*ClOrdID.(\d+), (.*)")
-# timestamp = group(1)
-# sess_id = group(2)
-# tw_login = group(3)
-# name = group(4)
-# ClOrdID = group(6)
-
-
-# (\d+-\d+-\d+.\d+:\d+:\d+.\d+.\d+.),.id.(\d*).(tw\w*), \w+ (New\w+|Order\w+[^Q][Request|Response|Reject]).*ClOrdID.(\d+), (.*)
