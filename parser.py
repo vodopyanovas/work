@@ -12,6 +12,7 @@ import os
 import re
 import gzip
 import shutil
+import time
 
 from config import tw_srv1, tw_srv2, now
 from models import (
@@ -22,6 +23,9 @@ from models import create_db
 
 import paramiko
 from paramiko.ssh_exception import AuthenticationException
+from sqlalchemy.exc import SQLAlchemyError
+
+start_time = time.time()
 
 
 # скачивает файл логов с указанного сервера по ssh
@@ -66,16 +70,16 @@ def download_logfile(settings, srv):
 
                 os.remove(local_path)  # удалить файл архива
 
-        return local_path
+        return local_path[:-3] + '.log'
 
     except IOError as e:
-        print('IOError:', e)
+        print('[download_logfile_IOError:]', e)
     except Exception as e:
-        print('[Error]', e)
+        print('download_logfile_[Error]', e)
 
 
 # парсит строку в список из значений полей сообщения
-def parser(message):
+def parse_string(message, srv):
     pattern_timestamp = re.compile(r"(\d+-.*)")
     parse = dict(item.split(' ', 1) for item in message.split(', '))
     result = list(parse.values())
@@ -87,30 +91,42 @@ def parser(message):
     result[0] = timestamp
     result[1] = sess_id
     result.insert(2, tw_login)
-    msg_type = result[3]
+    result.append(srv)
 
-    return result, msg_type
+    if result[3] == 'NewOrderSingle':
+        sql_obj = NewOrderSingle(
+            server_id=result[-1], timestamp=result[0], sess_id=result[1], tw_login=result[2],
+            msg_type=result[3], security_id=int(result[11]), price=float(result[10]), order_qty=int(result[13]),
+            cl_ord_id=int(result[8]), cl_ord_link_ID=int(result[12]), side=int(result[15]), check_limit=int(result[16]), account=result[17],
+            expire_date=result[9], time_in_force=int(result[14])
+        )
+
+        return sql_obj
 
 
-def file_handling():
-    pass
-
-
+# пишет распарсеную строку в базу данных
 def write_to_db(object):
-    pass
-    # new_ord_req = NewOrderSingle(
-    #     server_id=server_id, timestamp=timestamp, sess_id=sess_id, tw_login=tw_login,
-    #     msg_type=msg_type, security_id=security_id, price=price, order_qty=order_qty,
-    #     cl_ord_id=cl_ord_id, cl_ord_link_ID=cl_ord_link_ID, side=side, account=account,
-    #     expire_date=expire_date, time_in_force=time_in_force
-    # )
+    try:
+        session.add(object)
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        print('[write_to_db_SQLAlchemyError]', e)
+    except Exception as e:
+        session.rollback()
+        print('[write_to_db_Error]', e)
 
-    # session.add(<экземпляр класса>)
-    # session.commit()
+
+# циклично идёт по строкам файла
+def file_handling(file_name, srv):
+    with open(file_name, 'r') as f:
+        for line in f:
+            parse_result = parse_string(line, srv)
+            if parse_result is not None:
+                write_to_db(parse_result)
 
 
 if __name__ == "__main__":
-    # while True:
     try:
         print('Скачиваю файлы')
         file_name1 = download_logfile(tw_srv1, 1)
@@ -119,18 +135,25 @@ if __name__ == "__main__":
         print('Файл скачан:', file_name2)
         print('Создаю БД')
         session = create_db()
-        print('БД создана: ' + now + '.sqlite')
+        print(session)
+        print('БД создана: ' + now + '.sqlite3')
+        print('Открываю файл', file_name1)
+        file_handling(file_name1, 1)
+        print('Открываю файл', file_name2)
+        file_handling(file_name2, 2)
+        print('Done!')
+        print("--- %s seconds ---" % (time.time() - start_time))
 
-    except KeyboardInterrupt:
-        print('Exit')
-        # break
+    # except KeyboardInterrupt:
+    #     print('Exit')
     except AuthenticationException:
-        print('[Error] Authentication error! Check login/password')
+        print('[Main_AuthenticationException] Authentication error! Check login/password')
     except Exception as e:
-        print('[Error]', e)
+        print('[Main_Error]', e)
 
 
 # TODO:
-1. Сделать логирование
-2. Работа с файлами логов: открыть нужный файл, циклом идти по строкам и парсить их
-3. Допилить запись в БД
+# 1. Сделать логирование
+# 2. Работа с файлами логов: открыть нужный файл, циклом идти по строкам и парсить их
+# 3. Допилить запись в БД
+# 4. Сделать функцию по загрузке указанных вручную логов
