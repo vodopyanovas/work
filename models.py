@@ -192,9 +192,3 @@ def create_db():
     session = Session()
 
     return session
-
-
-# ИСПРАВИТЬ:
-# cl_ord_id = Column('ClOrdID', Integer)  # BigInteger
-# cl_ord_link_ID = Column('ClOrdLinkID', Integer)  # BigInteger
-# order_id = Column('OrderID', Integer)  # BigInteger
