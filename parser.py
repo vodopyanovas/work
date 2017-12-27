@@ -5,7 +5,7 @@
     Подробнее написано в файле readme.txt
 """
 
-__version__ = '0.4.1'
+__version__ = '0.9.6'
 __author__ = 'Anton Vodopyanov'
 
 import os
@@ -95,23 +95,115 @@ def parse_string(message, srv):
 
     if result[3] == 'NewOrderSingle':
         sql_obj = NewOrderSingle(
-            server_id=result[-1], timestamp=result[0], sess_id=result[1], tw_login=result[2],
-            msg_type=result[3], security_id=int(result[11]), price=float(result[10]), order_qty=int(result[13]),
-            cl_ord_id=int(result[8]), cl_ord_link_ID=int(result[12]), side=int(result[15]), check_limit=int(result[16]), account=result[17],
-            expire_date=result[9], time_in_force=int(result[14])
-        )
-
+            timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=int(result[8]),
+            expire_date=result[9],
+            price=float(result[10]),
+            security_id=int(result[11]),
+            cl_ord_link_ID=int(result[12]),
+            order_qty=int(result[13]),
+            time_in_force=int(result[14]),
+            side=int(result[15]),
+            check_limit=int(result[16]),
+            account=result[17],
+            server_id=result[-1])
         return sql_obj
+
+    elif result[3] == 'NewOrderSingleResponse':
+        sql_obj = NewOrderSingle(
+            timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=int(result[8]),
+            moment=result[9],
+            expire_date=result[10],
+            order_id=int(result[11]),
+            flags=result[12],
+            price=float(result[13]),
+            security_id=int(result[14]),
+            order_qty=int(result[15]),
+            trading_sess_id=int(result[16]),
+            cl_ord_link_ID=int(result[17]),
+            side=int(result[18]),
+            server_id=result[-1]
+        )
+        return sql_obj
+
+    elif result[3] == 'NewOrderReject':
+        sql_obj = NewOrderSingle(
+            timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=int(result[8]),
+            moment=result[9],
+            ord_rej_reason=result[10],
+            server_id=result[-1]
+        )
+        return sql_obj
+
+    elif result[3] == 'OrderCancelRequest':
+        sql_obj = OrderCancelRequest(
+            timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=int(result[8]),
+            order_id=result[9],
+            account=result[10],
+            server_id=result[-1]
+        )
+        return sql_obj
+
+    elif result[3] == 'OrderCancelResponse':
+        sql_obj = OrderCancelRequest(
+            timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=int(result[8]),
+            moment=result[9],
+            order_id=result[10],
+            flags=result[11],
+            order_qty=int(result[12]),
+            trading_sess_id=int(result[13]),
+            cl_ord_link_ID=int(result[14]),
+            server_id=result[-1]
+        )
+        return sql_obj
+
+    elif result[3] == 'OrderCancelReject':
+        sql_obj = OrderCancelRequest(
+            timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=int(result[8]),
+            moment=result[9],
+            ord_rej_reason=result[10],
+            server_id=result[-1]
+        )
+        return sql_obj
+
+    # elif result[3] == 'NewOrderMultileg':
+    #     pass
+    #     return sql_obj
+    # elif result[3] == 'NewOrderMultilegResponse':
+    #     pass
+    #     return sql_obj
+
+    # elif result[3] == 'OrderMassCancelRequest':
+    #     pass
+    #     return sql_obj
+    # elif result[3] == 'OrderMassCancelResponse':
+    #     pass
+    #     return sql_obj
+
+    # elif result[3] == 'OrderReplaceRequest':
+    #     pass
+    #     return sql_obj
+
+    # elif result[3] == 'OrderReplaceResponse':
+    #     pass
+    #     return sql_obj
+
+    # elif result[3] == 'OrderReplaceReject':
+    #     pass
+    #     return sql_obj
+
+    # elif result[3] == 'ExecutionSingleReport':
+    #     pass
+    #     return sql_obj
+
+    # elif result[3] == 'ExecutionMultilegReport':
+    #     pass
+    #     return sql_obj
 
 
 # пишет распарсеную строку в базу данных
 def write_to_db(object):
     try:
         session.add(object)
-        session.commit()
-    except SQLAlchemyError as e:
-        session.rollback()
-        print('[write_to_db_SQLAlchemyError]', e)
     except Exception as e:
         session.rollback()
         print('[write_to_db_Error]', e)
@@ -135,13 +227,18 @@ if __name__ == "__main__":
         print('Файл скачан:', file_name2)
         print('Создаю БД')
         session = create_db()
-        print(session)
         print('БД создана: ' + now + '.sqlite3')
-        print('Открываю файл', file_name1)
-        file_handling(file_name1, 1)
-        print('Открываю файл', file_name2)
-        file_handling(file_name2, 2)
-        print('Done!')
+        # print('Открываю файл', file_name1)
+        # file_handling(file_name1, 1)
+        # print('Открываю файл', file_name2)
+        # file_handling(file_name2, 2)
+        # print('Done!')
+
+        print('Открываю файл')
+        file_handling('2_support_log.20171227165959998.log', 0)
+        print('Заливаю базу')
+        session.commit()
+
         print("--- %s seconds ---" % (time.time() - start_time))
 
     # except KeyboardInterrupt:
@@ -150,6 +247,9 @@ if __name__ == "__main__":
         print('[Main_AuthenticationException] Authentication error! Check login/password')
     except Exception as e:
         print('[Main_Error]', e)
+    except SQLAlchemyError as e:
+        session.rollback()
+        print('[write_to_db_SQLAlchemyError]', e)
 
 
 # TODO:
