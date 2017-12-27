@@ -11,6 +11,15 @@ from sqlalchemy.orm import sessionmaker
 Base = declarative_base()
 
 
+def create_db():
+    engine = create_engine(db_source)
+    Session = sessionmaker(bind=engine)
+    Base.metadata.create_all(engine)
+    session = Session()
+
+    return session
+
+
 class NewOrderSingle(Base):
     __tablename__ = 'NewOrderSingle'
 
@@ -183,12 +192,3 @@ class OrderReplaceRequest(Base):
     mode = Column(SmallInteger)
     check_limit = Column('CheckLimit', SmallInteger)
     trd_match_ID = Column('TrdMatchID', BigInteger)
-
-
-def create_db():
-    engine = create_engine(db_source)
-    Session = sessionmaker(bind=engine)
-    Base.metadata.create_all(engine)
-    session = Session()
-
-    return session
