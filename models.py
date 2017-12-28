@@ -12,7 +12,7 @@ Base = declarative_base()
 
 
 def create_db():
-    engine = create_engine(db_source)
+    engine = create_engine(db_source, echo=False)
     Session = sessionmaker(bind=engine)
     Base.metadata.create_all(engine)
     session = Session()
@@ -33,9 +33,9 @@ class NewOrderSingle(Base):
     security_id = Column('SecurityID', Integer)
     price = Column(Float)
     order_qty = Column('OrderQty', Integer)
-    cl_ord_id = Column('ClOrdID', Integer)  # BigInteger
-    cl_ord_link_ID = Column('ClOrdLinkID', Integer)  # BigInteger
-    order_id = Column('OrderID', Integer)  # BigInteger
+    cl_ord_id = Column('ClOrdID', String(25))  # BigInteger
+    cl_ord_link_ID = Column('ClOrdLinkID', BigInteger)  # BigInteger
+    order_id = Column('OrderID', BigInteger)  # BigInteger
     moment = Column(String(30))
     side = Column(SmallInteger)
     check_limit = Column('CheckLimit', SmallInteger)
@@ -44,7 +44,7 @@ class NewOrderSingle(Base):
     time_in_force = Column('TimeInForce', SmallInteger)
     trading_sess_id = Column('TradingSessionID', Integer)
     ord_rej_reason = Column('OrdRejReason', SmallInteger)
-    flags = Column('Flags', String(20))
+    flags = Column('flags', String(20))
 
 
 class OrderCancelRequest(Base):
@@ -58,7 +58,7 @@ class OrderCancelRequest(Base):
     msg_type = Column('type', String(30))
 
     order_qty = Column('OrderQty', Integer)
-    cl_ord_id = Column('ClOrdID', BigInteger)
+    cl_ord_id = Column('ClOrdID', String(25))
     cl_ord_link_ID = Column('ClOrdLinkID', BigInteger)
     order_id = Column('OrderID', BigInteger)
     moment = Column(String(30))
@@ -79,7 +79,7 @@ class ExecutionSingleReport(Base):
     msg_type = Column('type', String(30))
 
     security_id = Column('SecurityID', Integer)
-    cl_ord_id = Column('ClOrdID', BigInteger)
+    cl_ord_id = Column('ClOrdID', String(25))
     cl_ord_link_ID = Column('ClOrdLinkID', BigInteger)
     order_id = Column('OrderID', BigInteger)
     trd_match_ID = Column('TrdMatchID', BigInteger)
@@ -89,7 +89,7 @@ class ExecutionSingleReport(Base):
     trading_sess_id = Column('TradingSessionID', Integer)
     flags = Column(String(20))
     last_px = Column('LastPx', Float)
-    last_qty = Column('LastQty', Float)
+    last_qty = Column('LastQty', Integer)
 
 
 class NewOrderMultileg(Base):
@@ -105,7 +105,7 @@ class NewOrderMultileg(Base):
     security_id = Column('SecurityID', Integer)
     price = Column(Float)
     order_qty = Column('OrderQty', Integer)
-    cl_ord_id = Column('ClOrdID', BigInteger)
+    cl_ord_id = Column('ClOrdID', String(25))
     cl_ord_link_ID = Column('ClOrdLinkID', BigInteger)
     order_id = Column('OrderID', BigInteger)
     moment = Column(String(30))
@@ -129,7 +129,7 @@ class OrderMassCancelRequest(Base):
     msg_type = Column('type', String(30))
 
     order_qty = Column('OrderQty', Integer)
-    cl_ord_id = Column('ClOrdID', BigInteger)
+    cl_ord_id = Column('ClOrdID', String(25))
     cl_ord_link_ID = Column('ClOrdLinkID', BigInteger)
     security_id = Column('SecurityID', Integer)
     security_type = Column('SecurityType', SmallInteger)
@@ -154,7 +154,7 @@ class ExecutionMultilegReport(Base):
     msg_type = Column('type', String(30))
 
     security_id = Column('SecurityID', Integer)
-    cl_ord_id = Column('ClOrdID', BigInteger)
+    cl_ord_id = Column('ClOrdID', String(25))
     cl_ord_link_ID = Column('ClOrdLinkID', BigInteger)
     order_id = Column('OrderID', BigInteger)
     trd_match_ID = Column('TrdMatchID', BigInteger)
@@ -164,7 +164,7 @@ class ExecutionMultilegReport(Base):
     trading_sess_id = Column('TradingSessionID', Integer)
     flags = Column(String(20))
     last_px = Column('LastPx', Float)
-    last_qty = Column('LastQty', Float)
+    last_qty = Column('LastQty', Integer)
     leg_price = Column('LegPrice', Float)
 
 
@@ -180,7 +180,7 @@ class OrderReplaceRequest(Base):
 
     price = Column(Float)
     order_qty = Column('OrderQty', Integer)
-    cl_ord_id = Column('ClOrdID', BigInteger)
+    cl_ord_id = Column('ClOrdID', String(25))
     cl_ord_link_ID = Column('ClOrdLinkID', BigInteger)
     order_id = Column('OrderID', BigInteger)
     prev_order_id = Column('PrevOrderID', BigInteger)
