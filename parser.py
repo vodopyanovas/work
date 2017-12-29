@@ -5,7 +5,7 @@
     Подробнее написано в файле readme.txt
 """
 
-__version__ = '0.1.0'
+__version__ = '1.1.0'
 __author__ = 'Anton Vodopyanov'
 
 import os
@@ -13,7 +13,7 @@ import re
 import gzip
 import shutil
 import time
-# import pyodbc
+import pyodbc
 
 from config import tw_srv1, tw_srv2, now
 from models import (
@@ -96,6 +96,7 @@ def parse_string(message, srv):
     result.append(srv)
 
     if result[3] == 'NewOrderSingle':
+
         sql_obj = NewOrderSingle(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             expire_date=result[9],
@@ -106,12 +107,13 @@ def parse_string(message, srv):
             time_in_force=int(result[14]),
             side=int(result[15]),
             check_limit=int(result[16]),
-            account=result[17],
+            account=result[17].rstrip(),
             server_id=result[-1]
         )
         return sql_obj
 
     elif result[3] == 'NewOrderSingleResponse':
+
         sql_obj = NewOrderSingle(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
@@ -129,24 +131,27 @@ def parse_string(message, srv):
         return sql_obj
 
     elif result[3] == 'NewOrderReject':
+
         sql_obj = NewOrderSingle(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
-            ord_rej_reason=result[10],
+            ord_rej_reason=int(result[10]),
             server_id=result[-1]
         )
         return sql_obj
 
     elif result[3] == 'OrderCancelRequest':
+
         sql_obj = OrderCancelRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             order_id=int(result[9]),
-            account=result[10],
+            account=result[10].rstrip(),
             server_id=result[-1]
         )
         return sql_obj
 
     elif result[3] == 'OrderCancelResponse':
+
         sql_obj = OrderCancelRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
@@ -160,28 +165,31 @@ def parse_string(message, srv):
         return sql_obj
 
     elif result[3] == 'OrderCancelReject':
+
         sql_obj = OrderCancelRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
-            ord_rej_reason=result[10],
+            ord_rej_reason=int(result[10]),
             server_id=result[-1]
         )
         return sql_obj
 
     elif result[3] == 'OrderMassCancelRequest':
+
         sql_obj = OrderMassCancelRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             cl_ord_link_ID=int(result[9]),
             security_id=int(result[10]),
             security_type=int(result[11]),
             side=int(result[12]),
-            account=result[13],
-            security_group=result[14],
+            account=result[13].rstrip(),
+            security_group=result[14].rstrip(),
             server_id=result[-1]
         )
         return sql_obj
 
     elif result[3] == 'OrderMassCancelResponse':
+
         sql_obj = OrderMassCancelRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
@@ -192,6 +200,7 @@ def parse_string(message, srv):
         return sql_obj
 
     elif result[3] == 'OrderReplaceRequest':
+
         sql_obj = OrderReplaceRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             order_id=int(result[9]),
@@ -200,12 +209,13 @@ def parse_string(message, srv):
             cl_ord_link_ID=int(result[12]),
             mode=int(result[13]),
             check_limit=int(result[14]),
-            account=result[15],
+            account=result[15].rstrip(),
             server_id=result[-1]
         )
         return sql_obj
 
     elif result[3] == 'OrderReplaceResponse':
+
         sql_obj = OrderReplaceRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
@@ -221,15 +231,17 @@ def parse_string(message, srv):
         return sql_obj
 
     elif result[3] == 'OrderReplaceReject':
+
         sql_obj = OrderReplaceRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
-            ord_rej_reason=result[10],
+            ord_rej_reason=int(result[10]),
             server_id=result[-1]
         )
         return sql_obj
 
     elif result[3] == 'ExecutionSingleReport':
+
         sql_obj = ExecutionSingleReport(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
@@ -248,6 +260,7 @@ def parse_string(message, srv):
         return sql_obj
 
     elif result[3] == 'NewOrderMultileg':
+
         sql_obj = NewOrderMultileg(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             expire_date=result[9],
@@ -257,12 +270,13 @@ def parse_string(message, srv):
             order_qty=int(result[13]),
             time_in_force=int(result[14]),
             side=int(result[15]),
-            account=result[16],
+            account=result[16].rstrip(),
             server_id=result[-1]
         )
         return sql_obj
 
     elif result[3] == 'NewOrderMultilegResponse':
+
         sql_obj = NewOrderMultileg(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
@@ -280,6 +294,7 @@ def parse_string(message, srv):
         return sql_obj
 
     elif result[3] == 'ExecutionMultilegReport':
+
         sql_obj = ExecutionMultilegReport(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
@@ -323,7 +338,7 @@ if __name__ == "__main__":
 
         print('Создаю БД')
         session = create_db()
-        print('БД создана: ' + now + '.sqlite3')
+        print('БД создана')  # + now + '.sqlite3')
 
         print('Открываю файл', file_name1)
         file_handling(file_name1, 1)
@@ -338,7 +353,7 @@ if __name__ == "__main__":
 
         # для тестирования
         # print('Открываю файл')
-        # file_handling('support_log.20171227120000009.log', 1)  # support_log.20171227130000009.log - big file
+        # file_handling('2_support_log.20171229075959998.log', 2)  # support_log.20171227130000009.log - big file
         # print('Заливаю базу')
         # session.commit()
         # print('Done!')

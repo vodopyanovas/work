@@ -1,6 +1,6 @@
 
 
-from config import db_source
+from config import db_source, now
 
 from sqlalchemy import Column, Integer, String, Float, BigInteger, SmallInteger
 from sqlalchemy.ext.declarative import declarative_base
@@ -21,7 +21,7 @@ def create_db():
 
 
 class NewOrderSingle(Base):
-    __tablename__ = 'NewOrderSingle'
+    __tablename__ = now[:-2] + '_' + 'NewOrderSingle'
 
     _id = Column('id', Integer, primary_key=True, autoincrement=True)
     server_id = Column(SmallInteger)
@@ -48,7 +48,7 @@ class NewOrderSingle(Base):
 
 
 class OrderCancelRequest(Base):
-    __tablename__ = 'OrderCancelRequest'
+    __tablename__ = now[:-2] + '_' + 'OrderCancelRequest'
 
     _id = Column('id', Integer, primary_key=True, autoincrement=True)
     server_id = Column(SmallInteger)
@@ -69,7 +69,7 @@ class OrderCancelRequest(Base):
 
 
 class ExecutionSingleReport(Base):
-    __tablename__ = 'ExecutionSingleReport'
+    __tablename__ = now[:-2] + '_' + 'ExecutionSingleReport'
 
     _id = Column('id', Integer, primary_key=True, autoincrement=True)
     server_id = Column(SmallInteger)
@@ -93,7 +93,7 @@ class ExecutionSingleReport(Base):
 
 
 class NewOrderMultileg(Base):
-    __tablename__ = 'NewOrderMultileg'
+    __tablename__ = now[:-2] + '_' + 'NewOrderMultileg'
 
     _id = Column('id', Integer, primary_key=True, autoincrement=True)
     server_id = Column(SmallInteger)
@@ -119,7 +119,7 @@ class NewOrderMultileg(Base):
 
 
 class OrderMassCancelRequest(Base):
-    __tablename__ = 'OrderMassCancelRequest'
+    __tablename__ = now[:-2] + '_' + 'OrderMassCancelRequest'
 
     _id = Column('id', Integer, primary_key=True, autoincrement=True)
     server_id = Column(SmallInteger)
@@ -144,7 +144,7 @@ class OrderMassCancelRequest(Base):
 
 
 class ExecutionMultilegReport(Base):
-    __tablename__ = 'ExecutionMultilegReport'
+    __tablename__ = now[:-2] + '_' + 'ExecutionMultilegReport'
 
     _id = Column('id', Integer, primary_key=True, autoincrement=True)
     server_id = Column(SmallInteger)
@@ -169,7 +169,7 @@ class ExecutionMultilegReport(Base):
 
 
 class OrderReplaceRequest(Base):
-    __tablename__ = 'OrderReplaceRequest'
+    __tablename__ = now[:-2] + '_' + 'OrderReplaceRequest'
 
     _id = Column('id', Integer, primary_key=True, autoincrement=True)
     server_id = Column(SmallInteger)
