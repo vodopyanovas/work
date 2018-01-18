@@ -1,6 +1,7 @@
 
-
-from config import db_source, now
+import re
+from config import db_source_mssql, now, days_ago
+# from config import db_source
 
 from sqlalchemy import Column, Integer, String, Float, BigInteger, SmallInteger
 from sqlalchemy.ext.declarative import declarative_base
@@ -9,15 +10,41 @@ from sqlalchemy.orm import sessionmaker
 
 
 Base = declarative_base()
+engine = create_engine(db_source_mssql, echo=False)
+# engine = create_engine(db_source, echo=False)
+Session = sessionmaker(bind=engine)
+session = Session()
 
 
 def create_db():
-    engine = create_engine(db_source, echo=False)
-    Session = sessionmaker(bind=engine)
     Base.metadata.create_all(engine)
-    session = Session()
 
-    return session
+
+def drop_old_tables():
+    tables = engine.table_names()
+    del_tables = []
+
+    pattern = re.compile(days_ago + '_' + r"\w+")
+
+    for table in tables:
+        search = re.search(pattern, table)
+        if search:
+            del_tables.append(search[0])
+
+    for table in del_tables:
+        command = "DROP TABLE [dbo].[{}]".format(table)
+        session.execute(command)
+        print(command)
+    session.commit()
+
+
+def drop_all():
+    tables = engine.table_names()
+    for table in tables:
+        command = "DROP TABLE [dbo].[{}]".format(table)
+        session.execute(command)
+        print(command)
+    session.commit()
 
 
 class NewOrderSingle(Base):
