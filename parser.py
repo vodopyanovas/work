@@ -5,7 +5,7 @@
     Подробнее написано в файле readme.txt (в разработке)
 """
 
-__version__ = '1.2.0'
+__version__ = '1.5.0'
 __author__ = 'Anton Vodopyanov'
 
 import os
@@ -14,6 +14,7 @@ import gzip
 import shutil
 import time
 import pyodbc
+import logging
 
 from config import tw_srv1, tw_srv2, now
 from models import (
@@ -21,13 +22,24 @@ from models import (
     OrderMassCancelRequest, ExecutionMultilegReport, OrderReplaceRequest
 )
 
-from models import create_db
+from models import create_db, drop_old_tables, session
 
 import paramiko
 from paramiko.ssh_exception import AuthenticationException
 from sqlalchemy.exc import SQLAlchemyError
 
 start_time = time.time()
+
+# конфигурация логирования
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+formatter = logging.Formatter('%(asctime)s  %(levelname)-8s  %(module)s  %(message)s')
+
+logfile_handler = logging.FileHandler('parcer_test.log')
+logfile_handler.setFormatter(formatter)
+
+logger.addHandler(logfile_handler)
 
 
 # скачивает файл логов с указанного сервера по ssh
@@ -58,8 +70,11 @@ def download_logfile(settings, srv):
             search = re.search(pattern, file)
             if search:
                 log_file = search[0]
-                # print(log_file)
+                logger.debug(log_file)
                 local_path = str(srv) + '_' + log_file  # в виде 1_support_log.20170927185959998.gz
+
+                print('Скачиваю файл:', local_path)
+                logger.info('Скачиваю файл: ' + local_path)
 
                 # скачать файл
                 sftp.get(remote_path + log_file, local_path)
@@ -72,12 +87,17 @@ def download_logfile(settings, srv):
 
                 os.remove(local_path)  # удалить файл архива
 
-        return local_path[:-3] + '.log'
+                print('Файл скачан: ' + local_path[:-3] + '.log')
+                logger.info('Файл скачан: ' + local_path[:-3] + '.log')
+
+                return local_path[:-3] + '.log'
 
     except IOError as e:
         print('[download_logfile_IOError:]', e)
+        logger.error(e)
     except Exception as e:
         print('download_logfile_[Error]', e)
+        logger.exception(e)
 
 
 # парсит строку в список из значений полей сообщения
@@ -96,36 +116,34 @@ def parse_string(message, srv):
     result.append(srv)
 
     if result[3] == 'NewOrderSingle':
-
         sql_obj = NewOrderSingle(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             expire_date=result[9],
-            price=float(result[10]),
-            security_id=int(result[11]),
-            cl_ord_link_ID=int(result[12]),
-            order_qty=int(result[13]),
-            time_in_force=int(result[14]),
-            side=int(result[15]),
-            check_limit=int(result[16]),
+            price=result[10],  # float
+            security_id=result[11],  # int
+            cl_ord_link_ID=result[12],  # int
+            order_qty=result[13],  # int
+            time_in_force=result[14],  # int
+            side=(result[15]),  # int
+            check_limit=result[16],  # int
             account=result[17].rstrip(),
             server_id=result[-1]
         )
         return sql_obj
 
     elif result[3] == 'NewOrderSingleResponse':
-
         sql_obj = NewOrderSingle(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
             expire_date=result[10],
-            order_id=int(result[11]),
+            order_id=result[11],  # int
             flags=result[12],
-            price=float(result[13]),
-            security_id=int(result[14]),
-            order_qty=int(result[15]),
-            trading_sess_id=int(result[16]),
-            cl_ord_link_ID=int(result[17]),
-            side=int(result[18]),
+            price=result[13],  # float
+            security_id=result[14],  # int
+            order_qty=result[15],  # int
+            trading_sess_id=result[16],  # int
+            cl_ord_link_ID=result[17],  # int
+            side=int(result[18]),  # int
             server_id=result[-1]
         )
         return sql_obj
@@ -144,7 +162,7 @@ def parse_string(message, srv):
 
         sql_obj = OrderCancelRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
-            order_id=int(result[9]),
+            order_id=result[9],  # int
             account=result[10].rstrip(),
             server_id=result[-1]
         )
@@ -155,10 +173,10 @@ def parse_string(message, srv):
         sql_obj = OrderCancelRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
-            order_id=int(result[10]),
+            order_id=result[10],  # int
             flags=result[11],
-            order_qty=int(result[12]),
-            trading_sess_id=int(result[13]),
+            order_qty=result[12],  # int
+            trading_sess_id=result[13],  # int
             cl_ord_link_ID=int(result[14]),
             server_id=result[-1]
         )
@@ -178,11 +196,11 @@ def parse_string(message, srv):
 
         sql_obj = OrderMassCancelRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
-            cl_ord_link_ID=int(result[9]),
-            security_id=int(result[10]),
-            security_type=int(result[11]),
-            side=int(result[12]),
-            account=result[13].rstrip(),
+            cl_ord_link_ID=result[9],
+            security_id=result[10],
+            security_type=result[11],
+            side=result[12],
+            account=result[13],
             security_group=result[14].rstrip(),
             server_id=result[-1]
         )
@@ -193,7 +211,7 @@ def parse_string(message, srv):
         sql_obj = OrderMassCancelRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
-            total_affected_orders=int(result[10]),
+            total_affected_orders=result[10],
             ord_rej_reason=int(result[11]),
             server_id=result[-1]
         )
@@ -203,12 +221,12 @@ def parse_string(message, srv):
 
         sql_obj = OrderReplaceRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
-            order_id=int(result[9]),
+            order_id=result[9],
             price=float(result[10]),
-            order_qty=int(result[11]),
-            cl_ord_link_ID=int(result[12]),
-            mode=int(result[13]),
-            check_limit=int(result[14]),
+            order_qty=result[11],
+            cl_ord_link_ID=result[12],
+            mode=result[13],
+            check_limit=result[14],
             account=result[15].rstrip(),
             server_id=result[-1]
         )
@@ -219,12 +237,12 @@ def parse_string(message, srv):
         sql_obj = OrderReplaceRequest(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
-            order_id=int(result[10]),
-            prev_order_id=int(result[11]),
+            order_id=result[10],
+            prev_order_id=result[11],
             flags=result[12],
             price=float(result[13]),
-            order_qty=int(result[14]),
-            trading_sess_id=int(result[15]),
+            order_qty=result[14],
+            trading_sess_id=result[15],
             cl_ord_link_ID=int(result[16]),
             server_id=result[-1]
         )
@@ -245,15 +263,15 @@ def parse_string(message, srv):
         sql_obj = ExecutionSingleReport(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
-            order_id=int(result[10]),
-            trd_match_ID=int(result[11]),
+            order_id=result[10],
+            trd_match_ID=result[11],
             flags=result[12],
             last_px=float(result[13]),
-            last_qty=int(result[14]),
-            order_qty=int(result[15]),
-            trading_sess_id=int(result[16]),
-            cl_ord_link_ID=int(result[17]),
-            security_id=int(result[18]),
+            last_qty=result[14],
+            order_qty=result[15],
+            trading_sess_id=result[16],
+            cl_ord_link_ID=result[17],
+            security_id=result[18],
             side=int(result[19]),
             server_id=result[-1]
         )
@@ -265,10 +283,10 @@ def parse_string(message, srv):
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             expire_date=result[9],
             price=float(result[10]),
-            security_id=int(result[11]),
-            cl_ord_link_ID=int(result[12]),
-            order_qty=int(result[13]),
-            time_in_force=int(result[14]),
+            security_id=result[11],
+            cl_ord_link_ID=result[12],
+            order_qty=result[13],
+            time_in_force=result[14],
             side=int(result[15]),
             account=result[16].rstrip(),
             server_id=result[-1]
@@ -281,13 +299,13 @@ def parse_string(message, srv):
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
             expire_date=result[10],
-            order_id=int(result[11]),
+            order_id=result[11],
             flags=result[12],
             price=float(result[13]),
-            security_id=int(result[14]),
-            order_qty=int(result[15]),
-            trading_sess_id=int(result[16]),
-            cl_ord_link_ID=int(result[17]),
+            security_id=result[14],
+            order_qty=result[15],
+            trading_sess_id=result[16],
+            cl_ord_link_ID=result[17],
             side=int(result[18]),
             server_id=result[-1]
         )
@@ -298,85 +316,93 @@ def parse_string(message, srv):
         sql_obj = ExecutionMultilegReport(
             timestamp=result[0], sess_id=result[1], tw_login=result[2], msg_type=result[3], cl_ord_id=result[8],
             moment=result[9],
-            order_id=int(result[10]),
-            trd_match_ID=int(result[11]),
+            order_id=result[10],
+            trd_match_ID=result[11],
             flags=result[12],
             last_px=float(result[13]),
             leg_price=float(result[14]),
-            last_qty=int(result[15]),
-            order_qty=int(result[16]),
-            trading_sess_id=int(result[17]),
-            cl_ord_link_ID=int(result[18]),
-            security_id=int(result[19]),
+            last_qty=result[15],
+            order_qty=result[16],
+            trading_sess_id=result[17],
+            cl_ord_link_ID=result[18],
+            security_id=result[19],
             side=int(result[20]),
             server_id=result[-1]
         )
         return sql_obj
 
 
-# пишет распарсеную строку в базу данных
-def write_to_db(object):
-    session.add(object)
-
-
 # циклично идёт по строкам файла
 def file_handling(file_name, srv):
-    with open(file_name, 'r') as f:
-        for line in f:
-            result = parse_string(line, srv)
-            if result is not None:
-                write_to_db(result)
+    if file_name:
+        print('Читаю файл', file_name)
+        logger.info('Читаю файл ' + file_name)
+
+        with open(file_name, 'r') as f:
+            for line in f:
+                result = parse_string(line, srv)
+                if result is not None:
+                    session.add(result)  # добавляет распарсеную строку в сессию для записи в базу данных
+        print('Заливаю базу')
+        logger.info('Заливаю базу')
+
+
+def main_run():
+    file_name1 = download_logfile(tw_srv1, 1)
+
+    if file_name1:
+        file_handling(file_name1, 1)
+        session.commit()
+        print('База залита файлом', file_name1)
+        logger.info('База залита файлом ' + file_name1)
+        os.remove(file_name1)
+
+    file_name2 = download_logfile(tw_srv2, 2)
+
+    if file_name2:
+        file_handling(file_name2, 2)
+        session.commit()
+        print('База залита файлом', file_name2)
+        logger.info('База залита файлом ' + file_name2)
+        os.remove(file_name2)
+
+    print('Done!')
+    logger.info('Done!')
 
 
 if __name__ == "__main__":
+    logger.info('--- Start ---------------------------------------------------')
     try:
-        print('Скачиваю файлы')
-        file_name1 = download_logfile(tw_srv1, 1)
-        print('Файл скачан:', file_name1)
-        file_name2 = download_logfile(tw_srv2, 2)
-        print('Файл скачан:', file_name2)
-
+        drop_old_tables()
         print('Создаю БД')
-        session = create_db()
-        print('БД создана')  # + now + '.sqlite3')
+        logger.info('Создаю БД')
+        create_db()
+        print('Таблицы созданы')
+        logger.info('Таблицы созданы')
 
-        print('Открываю файл', file_name1)
-        file_handling(file_name1, 1)
-        print('Заливаю базу')
-        session.commit()
-
-        print('Открываю файл', file_name2)
-        file_handling(file_name2, 2)
-        print('Заливаю базу')
-        session.commit()
-        print('Done!')
-
-        # для тестирования
-        # print('Открываю файл')
-        # file_handling('2_support_log.20171229075959998.log', 2)  # support_log.20171227130000009.log - big file
-        # print('Заливаю базу')
-        # session.commit()
-        # print('Done!')
-
-        finish_time = time.time() - start_time
-        if finish_time > 60:
-            finish_time /= 60
-            print("[Finished in {} min]".format(finish_time))
-        else:
-            print("[Finished in {} s.]".format(finish_time))
-
-        os.remove(file_name1)
-        os.remove(file_name2)
+        main_run()
 
     except KeyboardInterrupt:
         print('Exit')
     except AuthenticationException:
-        print('[Main_AuthenticationException] Authentication error! Check login/password')
+        print('Authentication error! Check login/password')
+        logger.critical('Authentication error! Check login/password')
     except Exception as e:
         print('[Main_Error]', e)
+        logger.exception(e)
     except SQLAlchemyError as e:
         session.rollback()
         print('[write_to_db_SQLAlchemyError]', e)
+        logger.error(e)
+
+    finish_time = time.time() - start_time
+    if finish_time > 60:
+        finish_time /= 60
+        print(f"[Finished in {finish_time}min]")
+        logger.info(f"Finished in {finish_time}min")
+    else:
+        print(f"[Finished in {finish_time}s.]")
+        logger.info(f"Finished in {finish_time}s.")
 
 
 # TODO:
