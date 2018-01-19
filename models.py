@@ -1,5 +1,6 @@
 
 import re
+import logging
 from config import db_source_mssql, now, days_ago
 # from config import db_source
 
@@ -8,22 +9,54 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+# конфигурация логирования
+loggerDB = logging.getLogger('database')
+loggerDB.setLevel(logging.INFO)  # уровень логирования
+formatter = logging.Formatter('%(asctime)s  %(levelname)-8s  %(name)-8s  %(message)s')  # формат записи в лог
+logfile_handler = logging.FileHandler('parcer.log')
+logfile_handler.setFormatter(formatter)
+loggerDB.addHandler(logfile_handler)
 
+# настройки SQLAlchemy
 Base = declarative_base()
 engine = create_engine(db_source_mssql, echo=False)
-# engine = create_engine(db_source, echo=False)
 Session = sessionmaker(bind=engine)
 session = Session()
 
 
 def create_db():
-    Base.metadata.create_all(engine)
+    tables = engine.table_names()
+    pattern = re.compile(now[:-2] + '_' + r"\w+")
+    flag = 0
+
+    for table in tables:
+        search = re.search(pattern, table)
+        if search:
+            flag = 1
+            break
+
+    if flag:
+        print('Подключаюсь к БД')
+        loggerDB.info('Подключаюсь к БД')
+    else:
+        print('Создаю таблицы')
+        loggerDB.info('Создаю таблицы')
+        Base.metadata.create_all(engine)
+        tables = engine.table_names()
+
+        for table in tables:
+            search = re.search(pattern, table)
+            if search:
+                print(f'CREATE TABLE [{table}]')
+                loggerDB.info(f'CREATE TABLE [{table}]')
+
+        print('Таблицы созданы')
+        loggerDB.info('Таблицы созданы')
 
 
 def drop_old_tables():
     tables = engine.table_names()
     del_tables = []
-    commands = []
 
     pattern = re.compile(days_ago + '_' + r"\w+")
 
@@ -33,11 +66,12 @@ def drop_old_tables():
             del_tables.append(search[0])
 
     for table in del_tables:
-        command = "DROP TABLE [dbo].[{}]".format(table)
+        command = f"DROP TABLE [dbo].[{table}]"
         session.execute(command)
-        commands.append(command)
+        print(command)
+        loggerDB.info(command)
+
     session.commit()
-    return commands
 
 
 def drop_all():
@@ -46,6 +80,7 @@ def drop_all():
         command = "DROP TABLE [dbo].[{}]".format(table)
         session.execute(command)
         print(command)
+        loggerDB.info(command)
     session.commit()
 
 
