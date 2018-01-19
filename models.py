@@ -23,6 +23,7 @@ def create_db():
 def drop_old_tables():
     tables = engine.table_names()
     del_tables = []
+    commands = []
 
     pattern = re.compile(days_ago + '_' + r"\w+")
 
@@ -34,8 +35,9 @@ def drop_old_tables():
     for table in del_tables:
         command = "DROP TABLE [dbo].[{}]".format(table)
         session.execute(command)
-        print(command)
+        commands.append(command)
     session.commit()
+    return commands
 
 
 def drop_all():
