@@ -87,8 +87,10 @@ def download_logfile(settings, srv):
 
                 os.remove(local_path)  # удалить файл архива
 
-                print('Файл скачан: ' + local_path[:-3] + '.log')
-                logger.info('Файл скачан: ' + local_path[:-3] + '.log')
+                # получает размер файла в Байтах, делит на 1024 для получения в КБ и округляет до 2х знаков после запятой
+                file_size = round(os.stat(local_path[:-3] + '.log').st_size / 1024, 2)
+                print('Файл скачан: ' + local_path[:-3] + '.log' + '  Размер файла: ' + str(file_size) + ' Kb')
+                logger.info('Файл скачан: ' + local_path[:-3] + '.log' + '  Размер файла: ' + str(file_size) + ' Kb')
 
                 return local_path[:-3] + '.log'
 
@@ -96,7 +98,7 @@ def download_logfile(settings, srv):
         print('[download_logfile_IOError:]', e)
         logger.error(e)
     except Exception as e:
-        print('download_logfile_[Error]', e)
+        print('[download_logfile_Error]', e)
         logger.exception(e)
 
 
@@ -373,7 +375,12 @@ def main_run():
 if __name__ == "__main__":
     logger.info('--- Start ---------------------------------------------------')
     try:
-        drop_old_tables()
+        commands = drop_old_tables()
+
+        for command in commands:
+            print(command)
+            logger.info(command)
+
         print('Создаю БД')
         logger.info('Создаю БД')
         create_db()
@@ -387,24 +394,22 @@ if __name__ == "__main__":
     except AuthenticationException:
         print('Authentication error! Check login/password')
         logger.critical('Authentication error! Check login/password')
-    except Exception as e:
-        print('[Main_Error]', e)
-        logger.exception(e)
     except SQLAlchemyError as e:
         session.rollback()
         print('[write_to_db_SQLAlchemyError]', e)
         logger.error(e)
 
+    except Exception as e:
+        print('[Main_Error]', e)
+        logger.exception(e)
+
     finish_time = time.time() - start_time
+
     if finish_time > 60:
-        finish_time /= 60
+        finish_time = round(finish_time / 60, 2)
         print(f"[Finished in {finish_time}min]")
         logger.info(f"Finished in {finish_time}min")
     else:
+        finish_time = round(finish_time, 2)
         print(f"[Finished in {finish_time}s.]")
         logger.info(f"Finished in {finish_time}s.")
-
-
-# TODO:
-# 1. Сделать логирование
-# 2. Оптимизировать
