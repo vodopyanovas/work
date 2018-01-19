@@ -5,7 +5,7 @@
     Подробнее написано в файле readme.txt (в разработке)
 """
 
-__version__ = '1.5.0'
+__version__ = '1.5.3'
 __author__ = 'Anton Vodopyanov'
 
 import os
@@ -31,14 +31,11 @@ from sqlalchemy.exc import SQLAlchemyError
 start_time = time.time()
 
 # конфигурация логирования
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('parser')
 logger.setLevel(logging.INFO)
-
-formatter = logging.Formatter('%(asctime)s  %(levelname)-8s  %(module)s  %(message)s')
-
-logfile_handler = logging.FileHandler('parcer_test.log')
+formatter = logging.Formatter('%(asctime)s  %(levelname)-8s  %(name)-8s  %(message)s')
+logfile_handler = logging.FileHandler('parcer.log')
 logfile_handler.setFormatter(formatter)
-
 logger.addHandler(logfile_handler)
 
 
@@ -89,8 +86,8 @@ def download_logfile(settings, srv):
 
                 # получает размер файла в Байтах, делит на 1024 для получения в КБ и округляет до 2х знаков после запятой
                 file_size = round(os.stat(local_path[:-3] + '.log').st_size / 1024, 2)
-                print('Файл скачан: ' + local_path[:-3] + '.log' + '  Размер файла: ' + str(file_size) + ' Kb')
-                logger.info('Файл скачан: ' + local_path[:-3] + '.log' + '  Размер файла: ' + str(file_size) + ' Kb')
+                print('Файл скачан: ' + local_path[:-3] + '.log' + '  Размер файла: ' + str(file_size) + 'KB')
+                logger.info('Файл скачан: ' + local_path[:-3] + '.log' + '  Размер файла: ' + str(file_size) + 'KB')
 
                 return local_path[:-3] + '.log'
 
@@ -375,18 +372,8 @@ def main_run():
 if __name__ == "__main__":
     logger.info('--- Start ---------------------------------------------------')
     try:
-        commands = drop_old_tables()
-
-        for command in commands:
-            print(command)
-            logger.info(command)
-
-        print('Создаю БД')
-        logger.info('Создаю БД')
+        drop_old_tables()
         create_db()
-        print('Таблицы созданы')
-        logger.info('Таблицы созданы')
-
         main_run()
 
     except KeyboardInterrupt:
