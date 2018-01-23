@@ -5,7 +5,7 @@
     Подробнее написано в файле readme.txt (в разработке)
 """
 
-__version__ = '1.5.3'
+__version__ = '1.5.5'
 __author__ = 'Anton Vodopyanov'
 
 import os
@@ -16,7 +16,7 @@ import time
 import pyodbc
 import logging
 
-from config import tw_srv1, tw_srv2, now
+from config import servers, now
 from models import (
     NewOrderSingle, OrderCancelRequest, ExecutionSingleReport, NewOrderMultileg,
     OrderMassCancelRequest, ExecutionMultilegReport, OrderReplaceRequest
@@ -347,30 +347,27 @@ def file_handling(file_name, srv):
 
 
 def main_run():
-    file_name1 = download_logfile(tw_srv1, 1)
+    for server in servers:
+        tw_srv = servers[server]
+        file_name = download_logfile(tw_srv, tw_srv[-1])
 
-    if file_name1:
-        file_handling(file_name1, 1)
-        session.commit()
-        print('База залита файлом', file_name1)
-        logger.info('База залита файлом ' + file_name1)
-        os.remove(file_name1)
+        if file_name:
+            file_handling(file_name, tw_srv[-1])
+            session.commit()
+            print('База залита файлом', file_name)
+            logger.info('База залита файлом ' + file_name)
+            os.remove(file_name)
 
-    file_name2 = download_logfile(tw_srv2, 2)
-
-    if file_name2:
-        file_handling(file_name2, 2)
-        session.commit()
-        print('База залита файлом', file_name2)
-        logger.info('База залита файлом ' + file_name2)
-        os.remove(file_name2)
+    print('Done!')
+    logger.info('Done!')
 
     print('Done!')
     logger.info('Done!')
 
 
 if __name__ == "__main__":
-    logger.info('--- Start ---------------------------------------------------')
+    logger.info('--- Start ----------------------------------------------------------------')
+
     try:
         drop_old_tables()
         create_db()
