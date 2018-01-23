@@ -361,9 +361,6 @@ def main_run():
     print('Done!')
     logger.info('Done!')
 
-    print('Done!')
-    logger.info('Done!')
-
 
 if __name__ == "__main__":
     logger.info('--- Start ----------------------------------------------------------------')
